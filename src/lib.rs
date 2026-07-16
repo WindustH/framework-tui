@@ -20,11 +20,12 @@ pub use command::{
 pub use editor::{EditorOptions, edit_text_in_editor, edit_text_in_editor_with_options};
 pub use input::{PromptInputResult, handle_prompt_action, handle_prompt_key, handle_prompt_paste};
 pub use keymap::{
-  KeyBindingConfig, KeyBindings, KeyContext, KeyDispatcher, KeyHint, MatchResult,
+  KeyBindingConfig, KeyBindings, KeyContext, KeyDispatcher, KeyHelpEntry, KeyHint, MatchResult,
   key_event_to_token,
 };
 pub use widgets::{
-  CompletionListStyle, KeyHintsStyle, PopupDialogStyle, PromptLineStyle, centered_popup_area,
-  completion_rows, default_completion_selected_style, draw_completion_list, draw_key_hints,
-  draw_popup_dialog, draw_prompt_line, key_hint_columns, key_hint_rows,
+  CompletionListStyle, KeyHelpDialogStyle, KeyHintsStyle, PopupDialogStyle, PromptLineStyle,
+  centered_popup_area, completion_rows, default_completion_selected_style, draw_completion_list,
+  draw_key_help_dialog, draw_key_hints, draw_popup_dialog, draw_prompt_line, key_hint_columns,
+  key_hint_rows,
 };

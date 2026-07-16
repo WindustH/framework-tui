@@ -6,7 +6,7 @@ use ratatui::{
   widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
-use crate::{CommandCompletion, KeyHint, Prompt};
+use crate::{CommandCompletion, KeyHelpEntry, KeyHint, Prompt};
 
 #[derive(Debug, Clone)]
 pub struct PromptLineStyle {
@@ -29,6 +29,33 @@ pub struct KeyHintsStyle {
   pub description: Style,
   pub separator_text: String,
   pub columns: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyHelpDialogStyle {
+  pub popup: PopupDialogStyle,
+  pub key: Style,
+  pub description: Style,
+  pub muted: Style,
+  pub close_hint: String,
+  pub max_key_width: usize,
+}
+
+impl Default for KeyHelpDialogStyle {
+  fn default() -> Self {
+    Self {
+      popup: PopupDialogStyle {
+        min_height: 8,
+        max_height: 34,
+        ..PopupDialogStyle::default()
+      },
+      key: Style::default().add_modifier(Modifier::BOLD),
+      description: Style::default(),
+      muted: Style::default().add_modifier(Modifier::DIM),
+      close_hint: "esc / q / enter / f1 close".to_string(),
+      max_key_width: 24,
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -101,6 +128,45 @@ pub fn draw_popup_dialog(
     popup,
   );
   Some(popup)
+}
+
+pub fn draw_key_help_dialog(
+  frame: &mut Frame,
+  area: Rect,
+  title: &str,
+  entries: &[KeyHelpEntry],
+  style: &KeyHelpDialogStyle,
+) -> Option<Rect> {
+  let key_width = entries
+    .iter()
+    .map(|entry| entry.keys.chars().count())
+    .max()
+    .unwrap_or(0)
+    .min(style.max_key_width);
+  let mut lines = Vec::with_capacity(entries.len().saturating_add(2));
+  if entries.is_empty() {
+    lines.push(Line::from(Span::styled(
+      "No bindings available",
+      style.muted,
+    )));
+  } else {
+    for entry in entries {
+      let keys = truncate_for_width(&entry.keys, key_width.max(1));
+      let padding = " ".repeat(key_width.saturating_sub(keys.chars().count()) + 2);
+      lines.push(Line::from(vec![
+        Span::styled(keys, style.key),
+        Span::styled(padding, style.popup.base),
+        Span::styled(entry.description.clone(), style.description),
+      ]));
+    }
+  }
+  if !style.close_hint.is_empty() {
+    lines.push(Line::from(Span::styled(
+      style.close_hint.clone(),
+      style.muted,
+    )));
+  }
+  draw_popup_dialog(frame, area, title, Text::from(lines), &style.popup)
 }
 
 pub fn draw_prompt_line(

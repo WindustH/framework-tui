@@ -43,6 +43,13 @@ pub struct KeyHint {
   pub label: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyHelpEntry {
+  pub action: String,
+  pub keys: String,
+  pub description: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct KeyBindingConfig {
   pub on: Vec<String>,
@@ -77,6 +84,33 @@ impl KeyBindings {
       ),
       KeyContext::Input => match_bindings(self.input.iter(), sequence),
     }
+  }
+
+  pub fn help_entries(&self, context: KeyContext) -> Vec<KeyHelpEntry> {
+    self.help_entries_filtered(context, |_| true)
+  }
+
+  pub fn help_entries_filtered(
+    &self,
+    context: KeyContext,
+    available: impl Fn(&str) -> bool,
+  ) -> Vec<KeyHelpEntry> {
+    let bindings = match context {
+      KeyContext::Browser => [&self.browser[..], &self.global[..]]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>(),
+      KeyContext::Detail => [&self.detail[..], &self.global[..]]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>(),
+      KeyContext::Input => self.input.iter().collect::<Vec<_>>(),
+    };
+    collect_help_entries(
+      bindings
+        .into_iter()
+        .filter(|binding| available(&binding.action)),
+    )
   }
 }
 
@@ -192,6 +226,30 @@ fn match_bindings<'a>(
   }
 
   MatchResult::None
+}
+
+fn collect_help_entries<'a>(bindings: impl Iterator<Item = &'a Binding>) -> Vec<KeyHelpEntry> {
+  let mut entries = Vec::<KeyHelpEntry>::new();
+  let mut entry_keys = Vec::<String>::new();
+  for binding in bindings {
+    let keys = binding.sequence.join(" ");
+    if let Some(index) = entries
+      .iter()
+      .position(|entry| entry.action == binding.action && entry.description == binding.desc)
+    {
+      entry_keys[index].push_str(", ");
+      entry_keys[index].push_str(&keys);
+      entries[index].keys = entry_keys[index].clone();
+    } else {
+      entry_keys.push(keys.clone());
+      entries.push(KeyHelpEntry {
+        action: binding.action.clone(),
+        keys,
+        description: binding.desc.clone(),
+      });
+    }
+  }
+  entries
 }
 
 fn parse_on(on: Vec<String>) -> Vec<String> {
