@@ -3,7 +3,7 @@ use ratatui::{
   layout::Rect,
   style::{Color, Modifier, Style},
   text::{Line, Span, Text},
-  widgets::{Block, Paragraph},
+  widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
 use crate::{CommandCompletion, KeyHint, Prompt};
@@ -29,6 +29,78 @@ pub struct KeyHintsStyle {
   pub description: Style,
   pub separator_text: String,
   pub columns: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct PopupDialogStyle {
+  pub base: Style,
+  pub border: Style,
+  pub min_width: u16,
+  pub max_width: u16,
+  pub min_height: u16,
+  pub max_height: u16,
+  pub horizontal_margin: u16,
+  pub vertical_margin: u16,
+}
+
+impl Default for PopupDialogStyle {
+  fn default() -> Self {
+    Self {
+      base: Style::default(),
+      border: Style::default(),
+      min_width: 40,
+      max_width: 96,
+      min_height: 6,
+      max_height: 12,
+      horizontal_margin: 4,
+      vertical_margin: 2,
+    }
+  }
+}
+
+pub fn centered_popup_area(area: Rect, style: &PopupDialogStyle) -> Option<Rect> {
+  if area.width < style.min_width.min(20) || area.height < style.min_height {
+    return None;
+  }
+  let available_width = area.width.saturating_sub(style.horizontal_margin).max(1);
+  let available_height = area.height.saturating_sub(style.vertical_margin).max(1);
+  let width = available_width
+    .min(style.max_width)
+    .max(available_width.min(style.min_width));
+  let height = available_height
+    .min(style.max_height)
+    .max(available_height.min(style.min_height));
+  Some(Rect::new(
+    area.x + area.width.saturating_sub(width) / 2,
+    area.y + area.height.saturating_sub(height) / 2,
+    width,
+    height,
+  ))
+}
+
+pub fn draw_popup_dialog(
+  frame: &mut Frame,
+  area: Rect,
+  title: &str,
+  text: Text<'static>,
+  style: &PopupDialogStyle,
+) -> Option<Rect> {
+  let popup = centered_popup_area(area, style)?;
+  frame.render_widget(Clear, popup);
+  frame.render_widget(Block::default().style(style.base), popup);
+  frame.render_widget(
+    Paragraph::new(text)
+      .block(
+        Block::default()
+          .borders(Borders::ALL)
+          .title(title.to_string())
+          .border_style(style.border),
+      )
+      .style(style.base)
+      .wrap(Wrap { trim: true }),
+    popup,
+  );
+  Some(popup)
 }
 
 pub fn draw_prompt_line(

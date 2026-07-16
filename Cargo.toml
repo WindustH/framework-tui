@@ -3,7 +3,7 @@ name = "framework-tui"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Reusable command prompt, completion, history, and key binding helpers for TUI apps"
+description = "Reusable input, command, editor, dialog, and key binding helpers for TUI apps"
 repository = "https://github.com/WindustH/framework-tui"
 
 [dependencies]
