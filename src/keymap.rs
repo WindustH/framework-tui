@@ -158,40 +158,55 @@ impl KeyDispatcher {
     context: KeyContext,
     token: impl Into<String>,
   ) -> MatchResult {
-    let token = token.into();
-    let mut sequence = self.pending.clone();
-    sequence.push(token.clone());
+    self.dispatch_priority(&[bindings], context, token)
+  }
 
-    match bindings.match_sequence(context, &sequence) {
-      MatchResult::Action(action) => {
-        self.clear();
-        MatchResult::Action(action)
-      }
-      MatchResult::Prefix(hints) => {
-        self.pending = sequence;
-        self.hints = hints.clone();
-        MatchResult::Prefix(hints)
-      }
-      MatchResult::None if !self.pending.is_empty() => {
-        self.clear();
-        match bindings.match_sequence(context, std::slice::from_ref(&token)) {
-          MatchResult::Action(action) => {
-            self.clear();
-            MatchResult::Action(action)
-          }
-          MatchResult::Prefix(hints) => {
-            self.pending = vec![token];
-            self.hints = hints.clone();
-            MatchResult::Prefix(hints)
-          }
-          MatchResult::None => MatchResult::None,
+  /// Dispatch against a priority queue of bindings: the first entry that
+  /// matches (action or prefix) wins; later entries only see keys nobody
+  /// before them claimed. Useful for composite surfaces where several
+  /// widgets are visible at once and the focused widget's bindings go
+  /// first. Multi-key sequences stay with the queue: a sequence started by
+  /// any entry continues against the whole queue, and a broken
+  /// continuation falls back to the newest token as a fresh key.
+  pub fn dispatch_priority(
+    &mut self,
+    bindings: &[&KeyBindings],
+    context: KeyContext,
+    token: impl Into<String>,
+  ) -> MatchResult {
+    let token = token.into();
+    let result = self.dispatch_sequence(bindings, context, token.clone());
+    if !matches!(result, MatchResult::None) || self.pending.is_empty() {
+      return result;
+    }
+    // The pending sequence broke: retry the newest token as a fresh key.
+    self.clear();
+    self.dispatch_sequence(bindings, context, token)
+  }
+
+  fn dispatch_sequence(
+    &mut self,
+    bindings: &[&KeyBindings],
+    context: KeyContext,
+    token: String,
+  ) -> MatchResult {
+    let mut sequence = self.pending.clone();
+    sequence.push(token);
+    for candidate in bindings {
+      match candidate.match_sequence(context, &sequence) {
+        MatchResult::Action(action) => {
+          self.clear();
+          return MatchResult::Action(action);
         }
-      }
-      MatchResult::None => {
-        self.clear();
-        MatchResult::None
+        MatchResult::Prefix(hints) => {
+          self.pending = sequence;
+          self.hints = hints.clone();
+          return MatchResult::Prefix(hints);
+        }
+        MatchResult::None => continue,
       }
     }
+    MatchResult::None
   }
 
   pub fn clear(&mut self) {
@@ -266,27 +281,32 @@ fn match_bindings<'a>(
 }
 
 fn collect_help_entries<'a>(bindings: impl Iterator<Item = &'a Binding>) -> Vec<KeyHelpEntry> {
-  let mut entries = Vec::<KeyHelpEntry>::new();
-  let mut entry_keys = Vec::<String>::new();
-  for binding in bindings {
-    let keys = binding.sequence.join(" ");
-    if let Some(index) = entries
+  merge_help_entries(bindings.map(|binding| KeyHelpEntry {
+    action: binding.action.clone(),
+    keys: binding.sequence.join(" "),
+    description: binding.desc.clone(),
+  }))
+}
+
+/// Merge help entries across binding tables: entries with the same action
+/// and description combine their key lists ("g g, home"). Order is
+/// preserved — first occurrence wins the slot. Useful together with
+/// [`KeyDispatcher::dispatch_priority`] to build one help dialog for a
+/// composite surface.
+pub fn merge_help_entries(entries: impl IntoIterator<Item = KeyHelpEntry>) -> Vec<KeyHelpEntry> {
+  let mut merged = Vec::<KeyHelpEntry>::new();
+  for entry in entries {
+    if let Some(index) = merged
       .iter()
-      .position(|entry| entry.action == binding.action && entry.description == binding.desc)
+      .position(|existing| existing.action == entry.action && existing.description == entry.description)
     {
-      entry_keys[index].push_str(", ");
-      entry_keys[index].push_str(&keys);
-      entries[index].keys = entry_keys[index].clone();
+      merged[index].keys.push_str(", ");
+      merged[index].keys.push_str(&entry.keys);
     } else {
-      entry_keys.push(keys.clone());
-      entries.push(KeyHelpEntry {
-        action: binding.action.clone(),
-        keys,
-        description: binding.desc.clone(),
-      });
+      merged.push(entry);
     }
   }
-  entries
+  merged
 }
 
 fn parse_on(on: Vec<String>) -> Vec<String> {
@@ -459,6 +479,123 @@ mod tests {
     assert_eq!(
       shadowed.match_sequence(KeyContext::Browser, &sequence("g")),
       MatchResult::Action("global_action".to_string())
+    );
+  }
+
+  #[test]
+  fn priority_queue_falls_through_to_later_bindings() {
+    let focused = KeyBindings::from_sections(
+      [config("x", "focused_action")],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let neighbor = KeyBindings::from_sections(
+      [config("f", "neighbor_action")],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let queue = [&focused, &neighbor];
+    let mut dispatcher = KeyDispatcher::default();
+    // `f` is claimed by the neighbor when the focused pane has nothing.
+    assert_eq!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "f"),
+      MatchResult::Action("neighbor_action".to_string())
+    );
+  }
+
+  #[test]
+  fn priority_queue_first_match_wins() {
+    let focused = KeyBindings::from_sections(
+      [config("x", "focused_action")],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let neighbor = KeyBindings::from_sections(
+      [config("x", "neighbor_action")],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let queue = [&focused, &neighbor];
+    let mut dispatcher = KeyDispatcher::default();
+    assert_eq!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "x"),
+      MatchResult::Action("focused_action".to_string())
+    );
+  }
+
+  #[test]
+  fn priority_queue_keeps_multi_key_sequences() {
+    let focused = KeyBindings::from_sections(
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let neighbor = KeyBindings::from_sections(
+      [KeyBindingConfig {
+        on: vec!["g".to_string(), "g".to_string()],
+        action: "neighbor_gg".to_string(),
+        desc: String::new(),
+      }],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let queue = [&focused, &neighbor];
+    let mut dispatcher = KeyDispatcher::default();
+    assert!(matches!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "g"),
+      MatchResult::Prefix(_)
+    ));
+    // The continuation resolves against the whole queue, not just the list
+    // that produced the prefix.
+    assert_eq!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "g"),
+      MatchResult::Action("neighbor_gg".to_string())
+    );
+  }
+
+  #[test]
+  fn priority_queue_broken_sequence_retries_fresh_token() {
+    let focused = KeyBindings::from_sections(
+      [KeyBindingConfig {
+        on: vec!["g".to_string(), "g".to_string()],
+        action: "focused_gg".to_string(),
+        desc: String::new(),
+      }],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let neighbor = KeyBindings::from_sections(
+      [config("x", "neighbor_action")],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+    );
+    let queue = [&focused, &neighbor];
+    let mut dispatcher = KeyDispatcher::default();
+    assert!(matches!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "g"),
+      MatchResult::Prefix(_)
+    ));
+    // `z` continues no sequence but matches nothing fresh either.
+    assert_eq!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "z"),
+      MatchResult::None
+    );
+    // A key that only matches fresh after a broken prefix still fires.
+    assert!(matches!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "g"),
+      MatchResult::Prefix(_)
+    ));
+    assert_eq!(
+      dispatcher.dispatch_priority(&queue, KeyContext::Browser, "x"),
+      MatchResult::Action("neighbor_action".to_string())
     );
   }
 }

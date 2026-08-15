@@ -24,7 +24,7 @@ pub use input::{
 };
 pub use keymap::{
   KeyBindingConfig, KeyBindings, KeyContext, KeyDispatcher, KeyHelpEntry, KeyHint, MatchResult,
-  key_event_to_token,
+  key_event_to_token, merge_help_entries,
 };
 pub use widgets::{
   CompletionListStyle, KeyHelpDialogStyle, KeyHintsStyle, PopupDialogStyle, PromptLineStyle,
