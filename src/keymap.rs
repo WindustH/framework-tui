@@ -335,7 +335,7 @@ fn parse_key(value: &str) -> Option<String> {
       "pageup" | "page-up" | "pgup" => "pgup".to_string(),
       "pagedown" | "page-down" | "pgdn" => "pgdn".to_string(),
       "c-[" => "ctrl-[".to_string(),
-      key if key.starts_with("c-") => format!("ctrl-{}", &inner[2..].to_ascii_lowercase()),
+      key if key.starts_with("c-") => format!("ctrl-{}", inner[2..].to_ascii_lowercase()),
       key if key.starts_with("a-") => format!("alt-{}", &inner[2..]),
       key if key.starts_with('f') => key.to_string(),
       _ => inner.to_string(),
