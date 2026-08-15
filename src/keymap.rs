@@ -289,19 +289,35 @@ fn collect_help_entries<'a>(bindings: impl Iterator<Item = &'a Binding>) -> Vec<
 }
 
 /// Merge help entries across binding tables: entries with the same action
-/// and description combine their key lists ("g g, home"). Order is
-/// preserved — first occurrence wins the slot. Useful together with
-/// [`KeyDispatcher::dispatch_priority`] to build one help dialog for a
-/// composite surface.
+/// and description combine their key lists ("g c, home"). Duplicate keys
+/// — which appear when several tables share a global section — collapse
+/// to one ("q, q" -> "q"). Order is preserved — first occurrence wins
+/// the slot. Useful together with [`KeyDispatcher::dispatch_priority`]
+/// to build one help dialog for a composite surface.
 pub fn merge_help_entries(entries: impl IntoIterator<Item = KeyHelpEntry>) -> Vec<KeyHelpEntry> {
+  fn push_unique(keys: &mut String, seen: &mut Vec<String>, key: &str) {
+    if seen.iter().any(|existing| existing == key) {
+      return;
+    }
+    seen.push(key.to_string());
+    if !keys.is_empty() {
+      keys.push_str(", ");
+    }
+    keys.push_str(key);
+  }
+
   let mut merged = Vec::<KeyHelpEntry>::new();
   for entry in entries {
     if let Some(index) = merged
       .iter()
       .position(|existing| existing.action == entry.action && existing.description == entry.description)
     {
-      merged[index].keys.push_str(", ");
-      merged[index].keys.push_str(&entry.keys);
+      let mut keys = std::mem::take(&mut merged[index].keys);
+      let mut seen: Vec<String> = keys.split(", ").map(str::to_string).collect();
+      for key in entry.keys.split(", ") {
+        push_unique(&mut keys, &mut seen, key);
+      }
+      merged[index].keys = keys;
     } else {
       merged.push(entry);
     }
@@ -412,6 +428,35 @@ mod tests {
 
   fn sequence(token: &str) -> Vec<String> {
     vec![token.to_string()]
+  }
+
+  fn entry(action: &str, keys: &str, description: &str) -> KeyHelpEntry {
+    KeyHelpEntry {
+      action: action.to_string(),
+      keys: keys.to_string(),
+      description: description.to_string(),
+    }
+  }
+
+  #[test]
+  fn merge_help_entries_collapses_duplicate_keys() {
+    // Three panes sharing one global section each report "q" for quit.
+    let merged = merge_help_entries([
+      entry("quit", "q", "Quit"),
+      entry("quit", "q", "Quit"),
+      entry("quit", "q", "Quit"),
+    ]);
+    assert_eq!(merged.len(), 1);
+    assert_eq!(merged[0].keys, "q");
+
+    // Mixed: distinct keys and sequences are kept, repeats collapse.
+    let merged = merge_help_entries([
+      entry("top", "g c", "Jump to playing"),
+      entry("top", "home", "Jump to playing"),
+      entry("top", "g c", "Jump to playing"),
+    ]);
+    assert_eq!(merged.len(), 1);
+    assert_eq!(merged[0].keys, "g c, home");
   }
 
   /// Historical semantics: the flattened [section, global] iteration is
