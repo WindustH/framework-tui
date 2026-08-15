@@ -112,6 +112,19 @@ pub fn draw_popup_dialog(
   text: Text<'static>,
   style: &PopupDialogStyle,
 ) -> Option<Rect> {
+  draw_popup_dialog_scrolled(frame, area, title, text, style, 0)
+}
+
+/// Like [`draw_popup_dialog`] but scrolls the text content vertically by
+/// `scroll` rows (the title and borders stay fixed).
+pub fn draw_popup_dialog_scrolled(
+  frame: &mut Frame,
+  area: Rect,
+  title: &str,
+  text: Text<'static>,
+  style: &PopupDialogStyle,
+  scroll: usize,
+) -> Option<Rect> {
   let popup = centered_popup_area(area, style)?;
   frame.render_widget(Clear, popup);
   frame.render_widget(Block::default().style(style.base), popup);
@@ -124,6 +137,7 @@ pub fn draw_popup_dialog(
           .border_style(style.border),
       )
       .style(style.base)
+      .scroll((scroll as u16, 0))
       .wrap(Wrap { trim: true }),
     popup,
   );
@@ -136,6 +150,20 @@ pub fn draw_key_help_dialog(
   title: &str,
   entries: &[KeyHelpEntry],
   style: &KeyHelpDialogStyle,
+) -> Option<Rect> {
+  draw_key_help_dialog_scrolled(frame, area, title, entries, style, 0)
+}
+
+/// Like [`draw_key_help_dialog`] but scrolls the entry list by `scroll`
+/// rows. The `close_hint` line always stays pinned at the bottom of the
+/// dialog; only the binding entries scroll.
+pub fn draw_key_help_dialog_scrolled(
+  frame: &mut Frame,
+  area: Rect,
+  title: &str,
+  entries: &[KeyHelpEntry],
+  style: &KeyHelpDialogStyle,
+  scroll: usize,
 ) -> Option<Rect> {
   let key_width = entries
     .iter()
@@ -166,7 +194,7 @@ pub fn draw_key_help_dialog(
       style.muted,
     )));
   }
-  draw_popup_dialog(frame, area, title, Text::from(lines), &style.popup)
+  draw_popup_dialog_scrolled(frame, area, title, Text::from(lines), &style.popup, scroll)
 }
 
 pub fn draw_prompt_line(

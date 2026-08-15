@@ -12,6 +12,59 @@ pub enum PromptInputResult {
   UnknownAction(String),
 }
 
+/// Result of a key press while a scrollable key-help dialog is open.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HelpDialogInput {
+  /// The scroll position changed (a scroll action fired).
+  Scrolled,
+  /// A non-scroll key closed the dialog.
+  Closed,
+  /// The event produced no state change (key release, unmappable key).
+  Unhandled,
+}
+
+/// Handle a key press for an open key-help dialog, with the scroll keys
+/// driven by the caller's key bindings:
+///
+/// - `scroll_up` / `scroll_down` scroll by one row,
+/// - `page_up` / `page_down` scroll by ten rows,
+/// - any other key (bound or not) closes the dialog.
+///
+/// `scroll` is clamped to `0..=max_scroll`.
+pub fn handle_help_dialog_key(
+  scroll: &mut usize,
+  max_scroll: usize,
+  bindings: &KeyBindings,
+  key: KeyEvent,
+) -> HelpDialogInput {
+  if key.kind != KeyEventKind::Press {
+    return HelpDialogInput::Unhandled;
+  }
+  let Some(token) = key_event_to_token(key) else {
+    return HelpDialogInput::Unhandled;
+  };
+  let sequence = [token];
+  match bindings.match_sequence(KeyContext::Browser, &sequence) {
+    MatchResult::Action(action) => {
+      let delta: i32 = match action.as_str() {
+        "scroll_up" => -1,
+        "scroll_down" => 1,
+        "page_up" => -10,
+        "page_down" => 10,
+        _ => return HelpDialogInput::Closed,
+      };
+      let next = if delta < 0 {
+        scroll.saturating_sub(delta.unsigned_abs() as usize)
+      } else {
+        scroll.saturating_add(delta as usize)
+      };
+      *scroll = next.min(max_scroll);
+      HelpDialogInput::Scrolled
+    }
+    MatchResult::Prefix(_) | MatchResult::None => HelpDialogInput::Closed,
+  }
+}
+
 pub fn handle_prompt_paste(
   prompt: &mut Prompt,
   command_state: &mut CommandState,

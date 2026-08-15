@@ -15,6 +15,10 @@ pub struct KeyBindings {
   detail: Vec<Binding>,
   input: Vec<Binding>,
   global: Vec<Binding>,
+  /// Opt-in: when true, `global` bindings take priority over the
+  /// per-context sections in every non-input context. The default keeps
+  /// the historical context-first matching order.
+  global_priority: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -30,14 +34,14 @@ struct Binding {
   desc: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MatchResult {
   None,
   Prefix(Vec<KeyHint>),
   Action(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyHint {
   pub key: String,
   pub label: String,
@@ -69,20 +73,59 @@ impl KeyBindings {
       detail: parse_entries(detail),
       input: parse_entries(input),
       global: parse_entries(global),
+      global_priority: false,
     }
+  }
+
+  /// Prefer `global` bindings over the per-context sections in non-input
+  /// contexts (opt-in). A key bound in both places resolves to the `global`
+  /// action instead of the context action.
+  pub fn with_global_priority(mut self) -> Self {
+    self.global_priority = true;
+    self
+  }
+
+  pub fn global_priority(&self) -> bool {
+    self.global_priority
   }
 
   pub fn match_sequence(&self, context: KeyContext, sequence: &[String]) -> MatchResult {
     match context {
-      KeyContext::Browser => match_bindings(
-        [&self.browser[..], &self.global[..]].into_iter().flatten(),
-        sequence,
-      ),
-      KeyContext::Detail => match_bindings(
-        [&self.detail[..], &self.global[..]].into_iter().flatten(),
-        sequence,
-      ),
+      KeyContext::Browser => self.match_contexted(&self.browser, sequence),
+      KeyContext::Detail => self.match_contexted(&self.detail, sequence),
       KeyContext::Input => match_bindings(self.input.iter(), sequence),
+    }
+  }
+
+  /// Shared logic for the two non-input contexts: `global_priority`
+  /// decides whether the global section is consulted first or as a
+  /// fallback after the context section.
+  fn match_contexted(&self, section: &[Binding], sequence: &[String]) -> MatchResult {
+    if self.global_priority {
+      match match_bindings(self.global.iter(), sequence) {
+        MatchResult::None => match_bindings(section.iter(), sequence),
+        result => result,
+      }
+    } else {
+      match_bindings(section.iter().chain(self.global.iter()), sequence)
+    }
+  }
+
+  /// Section order for help display: context section followed by global,
+  /// unless `global_priority` is set (then global comes first, mirroring
+  /// matching order).
+  fn context_entries<'a>(&'a self, section: &'a [Binding]) -> Vec<&'a Binding> {
+    if self.global_priority {
+      self
+        .global
+        .iter()
+        .chain(section.iter())
+        .collect::<Vec<_>>()
+    } else {
+      section
+        .iter()
+        .chain(self.global.iter())
+        .collect::<Vec<_>>()
     }
   }
 
@@ -96,14 +139,8 @@ impl KeyBindings {
     available: impl Fn(&str) -> bool,
   ) -> Vec<KeyHelpEntry> {
     let bindings = match context {
-      KeyContext::Browser => [&self.browser[..], &self.global[..]]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>(),
-      KeyContext::Detail => [&self.detail[..], &self.global[..]]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>(),
+      KeyContext::Browser => self.context_entries(&self.browser),
+      KeyContext::Detail => self.context_entries(&self.detail),
       KeyContext::Input => self.input.iter().collect::<Vec<_>>(),
     };
     collect_help_entries(
@@ -329,5 +366,99 @@ pub fn key_event_to_token(event: KeyEvent) -> Option<String> {
     Some(format!("alt-{base}"))
   } else {
     Some(base)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn config(on: &str, action: &str) -> KeyBindingConfig {
+    KeyBindingConfig {
+      on: vec![on.to_string()],
+      action: action.to_string(),
+      desc: String::new(),
+    }
+  }
+
+  fn bindings() -> KeyBindings {
+    KeyBindings::from_sections(
+      [config("x", "browser_action")],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      [config("x", "global_action")],
+    )
+  }
+
+  fn sequence(token: &str) -> Vec<String> {
+    vec![token.to_string()]
+  }
+
+  /// Historical semantics: the flattened [section, global] iteration is
+  /// last-wins on exact conflicts, so a `global` entry beats a conflicting
+  /// context entry even without the opt-in flag.
+  #[test]
+  fn default_is_last_wins_like_history() {
+    let bindings = bindings();
+    assert_eq!(
+      bindings.match_sequence(KeyContext::Browser, &sequence("x")),
+      MatchResult::Action("global_action".to_string())
+    );
+  }
+
+  /// Historical semantics: a context-section prefix (multi-key sequence)
+  /// shadows a `global` exact match because pending hints win whenever any
+  /// binding can still be continued.
+  #[test]
+  fn default_section_prefix_shadows_global_exact() {
+    let bindings = KeyBindings::from_sections(
+      [KeyBindingConfig {
+        on: vec!["g".to_string(), "g".to_string()],
+        action: "gg_action".to_string(),
+        desc: String::new(),
+      }],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      [config("g", "global_action")],
+    );
+    assert!(matches!(
+      bindings.match_sequence(KeyContext::Browser, &sequence("g")),
+      MatchResult::Prefix(_)
+    ));
+  }
+
+  #[test]
+  fn global_priority_is_opt_in() {
+    let bindings = bindings().with_global_priority();
+    assert_eq!(
+      bindings.match_sequence(KeyContext::Browser, &sequence("x")),
+      MatchResult::Action("global_action".to_string())
+    );
+    // Input context still only consults the input section.
+    assert_eq!(
+      bindings.match_sequence(KeyContext::Input, &sequence("x")),
+      MatchResult::None
+    );
+    // Help order mirrors matching order.
+    let entries = bindings.help_entries(KeyContext::Browser);
+    assert_eq!(entries[0].action, "global_action");
+
+    // Opt-in also removes the historical prefix shadowing: a global exact
+    // match fires immediately instead of being shadowed by section prefixes.
+    let shadowed = KeyBindings::from_sections(
+      [KeyBindingConfig {
+        on: vec!["g".to_string(), "g".to_string()],
+        action: "gg_action".to_string(),
+        desc: String::new(),
+      }],
+      Vec::<KeyBindingConfig>::new(),
+      Vec::<KeyBindingConfig>::new(),
+      [config("g", "global_action")],
+    )
+    .with_global_priority();
+    assert_eq!(
+      shadowed.match_sequence(KeyContext::Browser, &sequence("g")),
+      MatchResult::Action("global_action".to_string())
+    );
   }
 }
