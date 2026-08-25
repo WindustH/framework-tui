@@ -21,6 +21,15 @@ pub struct CompletionListStyle {
   pub selected: Style,
 }
 
+impl Default for CompletionListStyle {
+  fn default() -> Self {
+    Self {
+      base: Style::default().fg(Color::White).bg(overlay_background()),
+      selected: default_completion_selected_style(),
+    }
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct KeyHintsStyle {
   pub base: Style,
@@ -72,9 +81,10 @@ pub struct PopupDialogStyle {
 
 impl Default for PopupDialogStyle {
   fn default() -> Self {
+    let base = Style::default().bg(overlay_background());
     Self {
-      base: Style::default(),
-      border: Style::default(),
+      base,
+      border: base,
       min_width: 40,
       max_width: 96,
       min_height: 6,
@@ -82,6 +92,18 @@ impl Default for PopupDialogStyle {
       horizontal_margin: 4,
       vertical_margin: 2,
     }
+  }
+}
+
+/// Keep overlay surfaces on the terminal's configured default background.
+pub const fn overlay_background() -> Color {
+  Color::Reset
+}
+
+pub fn completion_list_style(foreground: Color) -> CompletionListStyle {
+  CompletionListStyle {
+    base: Style::default().fg(foreground).bg(overlay_background()),
+    selected: default_completion_selected_style(),
   }
 }
 
@@ -373,4 +395,23 @@ fn truncate_for_width(value: &str, width: usize) -> String {
     out.push(ch);
   }
   out
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn overlay_background_uses_terminal_reset() {
+    assert_eq!(overlay_background(), Color::Reset);
+    assert_eq!(PopupDialogStyle::default().base.bg, Some(Color::Reset));
+  }
+
+  #[test]
+  fn completion_style_uses_shared_reset_background() {
+    let style = completion_list_style(Color::Cyan);
+    assert_eq!(style.base.fg, Some(Color::Cyan));
+    assert_eq!(style.base.bg, Some(Color::Reset));
+    assert_eq!(style.selected, default_completion_selected_style());
+  }
 }

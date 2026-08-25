@@ -28,7 +28,8 @@ pub use keymap::{
 };
 pub use widgets::{
   CompletionListStyle, KeyHelpDialogStyle, KeyHintsStyle, PopupDialogStyle, PromptLineStyle,
-  centered_popup_area, completion_rows, default_completion_selected_style, draw_completion_list,
-  draw_key_help_dialog, draw_key_help_dialog_scrolled, draw_key_hints, draw_popup_dialog,
-  draw_popup_dialog_scrolled, draw_prompt_line, key_hint_columns, key_hint_rows,
+  centered_popup_area, completion_list_style, completion_rows, default_completion_selected_style,
+  draw_completion_list, draw_key_help_dialog, draw_key_help_dialog_scrolled, draw_key_hints,
+  draw_popup_dialog, draw_popup_dialog_scrolled, draw_prompt_line, key_hint_columns, key_hint_rows,
+  overlay_background,
 };
