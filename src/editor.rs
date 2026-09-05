@@ -40,20 +40,16 @@ pub fn edit_text_in_editor_with_options(
   ));
   fs::write(&path, initial).map_err(|err| err.to_string())?;
 
-  let status = Command::new("sh")
-    .arg("-c")
-    .arg(format!(
-      "{} {}",
-      editor,
-      shell_quote(&path.display().to_string())
-    ))
-    .status()
-    .map_err(|err| err.to_string())?;
+  let status = launch_editor(&editor, &path).map_err(|err| err.to_string())?;
   if !status.success() {
     let _ = fs::remove_file(&path);
     return Err(format!("editor exited with {status}"));
   }
-  let edited = fs::read_to_string(&path).map_err(|err| err.to_string())?;
+  let edited = fs::read_to_string(&path)
+    .map_err(|err| err.to_string())
+    .inspect_err(|_| {
+      let _ = fs::remove_file(&path);
+    })?;
   let _ = fs::remove_file(&path);
   if options.trim_trailing_newline {
     Ok(edited.trim_end_matches(['\r', '\n']).to_string())
@@ -62,12 +58,26 @@ pub fn edit_text_in_editor_with_options(
   }
 }
 
+#[cfg(not(windows))]
+fn launch_editor(editor: &str, path: &Path) -> std::io::Result<std::process::ExitStatus> {
+  Command::new("sh")
+    .arg("-c")
+    .arg(format!("{} {}", editor, shell_quote(&path.display().to_string())))
+    .status()
+}
+
+#[cfg(windows)]
+fn launch_editor(editor: &str, path: &Path) -> std::io::Result<std::process::ExitStatus> {
+  Command::new(editor).arg(path).status()
+}
+
 fn default_editor() -> String {
   env::var("EDITOR")
     .or_else(|_| env::var("VISUAL"))
     .unwrap_or_else(|_| "vi".to_string())
 }
 
+#[cfg(not(windows))]
 fn shell_quote(value: &str) -> String {
   let mut quoted = String::from("'");
   for ch in value.chars() {
