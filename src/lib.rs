@@ -1,16 +1,21 @@
-//! Reusable TUI interaction building blocks for ratatui apps.
+//! Reusable interaction building blocks for ratatui apps.
 //!
-//! `CommandState` owns command history, completion selection, and applying the
-//! selected completion to a prompt buffer. `KeyDispatcher` owns multi-key
-//! pending state and which-key hints. The input helpers apply common prompt
-//! editing actions, the editor helpers run `$EDITOR` on temporary files, and
-//! the `widgets` module renders prompt, completion, key-hint, and popup UI so
-//! apps can share the same interaction style while supplying their own colors.
+//! - [`command`]: the prompt buffer, command history and command
+//!   completion ([`Prompt`], [`PromptBuffer`], [`CommandState`]).
+//! - [`input`]: applies key presses and pastes to an open prompt through
+//!   the app's key bindings, and scrolls or closes the key-help dialog.
+//! - [`keymap`]: configurable key bindings with per-context sections,
+//!   multi-key sequences, which-key hints and help listings
+//!   ([`KeyBindings`], [`KeyDispatcher`]).
+//! - [`editor`]: edits text in `$EDITOR` through a temporary file.
+//! - [`widgets`]: draws the prompt line, completion list, key hints, popup
+//!   dialogs and the key-help dialog with app-supplied colors.
 
 pub mod command;
 pub mod editor;
 pub mod input;
 pub mod keymap;
+mod text;
 pub mod widgets;
 
 pub use command::{
