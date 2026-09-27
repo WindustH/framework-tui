@@ -2,8 +2,9 @@
 
 Shared interaction building blocks for [ratatui](https://ratatui.rs) apps: a
 command prompt with history and completion, configurable multi-key bindings
-with which-key hints and a help dialog, `$EDITOR` integration, and the widgets
-that draw them.
+with which-key hints and a help dialog, keymap files, `$EDITOR` integration,
+terminal setup that always gives the terminal back, and the widgets that draw
+them.
 
 It gives [pdf-tui](https://github.com/WindustH/pdf-tui),
 [gallery-tui](https://github.com/WindustH/gallery-tui),
@@ -30,8 +31,20 @@ and dialogs, while each app keeps its own colors.
 - **Help dialog.** A scrollable popup lists the bindings that apply right
   now. Apps with several panes can merge their bindings into one list and
   send keys to the focused pane first.
+- **Keymap files.** A ready-made `keymap.toml` format (`on`, `run`, `desc` per
+  binding, grouped in sections) with the usual prompt keys as defaults. Files
+  are written one binding per line, typos such as a misspelt `keymap` are
+  caught instead of silently dropping bindings, and actions added in a new
+  release get their default key while the user's own keys stay untouched.
 - **External editor.** Hand the prompt, or any text, to `$EDITOR` and get the
-  result back.
+  result back. The editor receives every keystroke, and the screen is
+  repainted when you return.
+- **The terminal always comes back.** Raw mode and the alternate screen are
+  undone on exit, on errors, on panics and on `SIGTERM`/`SIGHUP`. A crash is
+  printed on the normal screen where you can read it, and a failing
+  background thread is reported to the app instead of scribbling over the UI.
+- **Pipe-friendly.** Draw the UI on stderr, or on stdout only when it is a
+  terminal, so `app | xargs ...` and `$(app)` receive just the app's output.
 - **Works with any script.** Chinese, Japanese and other wide text, emoji and
   accents line up; long input scrolls so the cursor stays visible; AltGr
   characters type normally on Windows.
@@ -42,7 +55,8 @@ and dialogs, while each app keeps its own colors.
 
 ```toml
 [dependencies]
-framework-tui = { git = "https://github.com/WindustH/framework-tui" }
+# `serde` adds reading and writing keymap files.
+framework-tui = { git = "https://github.com/WindustH/framework-tui", features = ["serde"] }
 ```
 
 Build the bindings once from your config, then feed key events through them:
@@ -201,9 +215,119 @@ Any other action comes back to the app as
 actions `scroll_up`, `scroll_down`, `page_up` and `page_down`, and any other key
 closes it.
 
-For `edit_in_editor`, leave raw mode and the alternate screen, call
-`edit_text_in_editor(&input, cache_dir)`, restore the terminal, and put the
+For `edit_in_editor`, call `edit_text_outside_tui` (see below) and put the
 result back with `PromptBuffer::set_input`.
+
+### Keymap files
+
+Keep the sections your app needs in its own config struct; the entries,
+defaults and file layout come from the library:
+
+```rust
+use framework_tui::keymap::{
+  InputKeymapOptions, KeyBindings, KeymapSection, default_input_keymap, format_keymap_sections,
+  key,
+};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
+struct KeymapConfig {
+  browser: KeymapSection,
+  input: KeymapSection,
+  global: KeymapSection,
+}
+
+impl Default for KeymapConfig {
+  fn default() -> Self {
+    Self {
+      browser: KeymapSection::new(vec![
+        key("j", "down", "Move down"),
+        key(["g", "g"], "top", "Go to top"),
+      ]),
+      input: default_input_keymap(&InputKeymapOptions::default()),
+      global: KeymapSection::new(vec![key("q", "quit", "Quit")]),
+    }
+  }
+}
+
+impl KeymapConfig {
+  fn bindings(&self) -> KeyBindings {
+    KeyBindings::from_sections(
+      self.browser.binding_configs(),
+      [],
+      self.input.binding_configs(),
+      self.global.binding_configs(),
+    )
+  }
+
+  /// Give actions added since the file was written their default keys.
+  fn fill_in_defaults(&mut self) {
+    let defaults = Self::default();
+    self.browser.append_missing_actions(&defaults.browser);
+    self.input.append_missing_actions(&defaults.input);
+    self.global.append_missing_actions(&defaults.global);
+  }
+
+  fn to_toml(&self) -> String {
+    format_keymap_sections([
+      ("browser", &self.browser),
+      ("input", &self.input),
+      ("global", &self.global),
+    ])
+  }
+}
+```
+
+### Terminal
+
+Set up the terminal once, read input on a background thread, and hand the
+terminal to the editor when asked. Nothing here needs an async runtime; an
+async app forwards input into its own channel from the reader's callback.
+
+```rust
+use framework_tui::{
+  EditorOptions, InputReader, PanicOrigin, TerminalOptions, TerminalOutput, TerminalSession,
+  edit_text_outside_tui, install_panic_hook,
+};
+
+fn main() -> std::io::Result<()> {
+  install_panic_hook(|info, origin| {
+    if origin == PanicOrigin::Background {
+      // Log it: it is not printed while the UI is on screen.
+    }
+  });
+  let mut session = TerminalSession::enter(TerminalOptions {
+    output: TerminalOutput::stdout_if_terminal(),
+    ..TerminalOptions::default()
+  })?;
+  let (tx, rx) = std::sync::mpsc::channel();
+  let input = InputReader::spawn(move |event| tx.send(event).is_ok())?;
+
+  for event in rx {
+    if !input.is_current(event.generation) {
+      continue; // typed before the editor ran
+    }
+    // ... handle event.event, draw with session.draw(...) ...
+    let handoff = edit_text_outside_tui(
+      &mut session,
+      Some(&input),
+      "text to edit",
+      std::path::Path::new("/tmp/my-app"),
+      &EditorOptions::default(),
+    );
+    let _edited = handoff.output;
+    handoff.terminal?;
+    break;
+  }
+  session.restore()
+}
+```
+
+Apps that draw extra things around ratatui (such as terminal images) wrap the
+session and implement `SuspendTerminal` to tear them down and rebuild them.
+`watch_termination_signals` calls back on `SIGTERM` and `SIGHUP`, so the app
+can quit cleanly.
 
 ## License
 

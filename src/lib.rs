@@ -6,8 +6,12 @@
 //!   the app's key bindings, and scrolls or closes the key-help dialog.
 //! - [`keymap`]: configurable key bindings with per-context sections,
 //!   multi-key sequences, which-key hints and help listings
-//!   ([`KeyBindings`], [`KeyDispatcher`]).
+//!   ([`KeyBindings`], [`KeyDispatcher`]), and the keymap file schema
+//!   ([`KeymapSection`]; serde support with the `serde` feature).
 //! - [`editor`]: edits text in `$EDITOR` through a temporary file.
+//! - [`terminal`]: owns the terminal ([`TerminalSession`]), restores it on
+//!   panics, reads input on a pausable thread ([`InputReader`]) and hands
+//!   the terminal to other programs ([`edit_text_outside_tui`]).
 //! - [`widgets`]: draws the prompt line, completion list, key hints, popup
 //!   dialogs and the key-help dialog with app-supplied colors.
 
@@ -15,6 +19,7 @@ pub mod command;
 pub mod editor;
 pub mod input;
 pub mod keymap;
+pub mod terminal;
 mod text;
 pub mod widgets;
 
@@ -28,8 +33,16 @@ pub use input::{
   handle_prompt_key, handle_prompt_paste,
 };
 pub use keymap::{
-  KeyBindingConfig, KeyBindings, KeyContext, KeyDispatcher, KeyHelpEntry, KeyHint, MatchResult,
-  key_event_to_token, merge_help_entries,
+  InputKeymapOptions, KeyBindingConfig, KeyBindings, KeyContext, KeyDispatcher, KeyHelpEntry,
+  KeyHint, KeymapEntry, KeymapOn, KeymapSection, MatchResult, default_input_keymap,
+  format_keymap_sections, key_event_to_token, merge_help_entries, push_keymap_section,
+  toml_basic_string,
+};
+pub use terminal::{
+  HandOff, InputEvent, InputReader, PanicOrigin, SessionBackend, SuspendTerminal, TerminalOptions,
+  TerminalOutput, TerminalSession, TerminationSignal, discard_pending_events,
+  edit_text_outside_tui, emergency_restore, install_panic_hook, run_outside_tui,
+  watch_termination_signals,
 };
 pub use widgets::{
   CompletionListStyle, KeyHelpDialogStyle, KeyHintsStyle, PopupDialogStyle, PromptLineStyle,

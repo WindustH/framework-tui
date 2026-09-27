@@ -1,0 +1,76 @@
+[browser]
+keymap = [
+  { on = "q", run = "quit", desc = "Quit gallery-tui" },
+  { on = "ctrl-c", run = "quit", desc = "Quit gallery-tui" },
+  { on = "enter", run = "open", desc = "Open detail page" },
+  { on = "h", run = "move_left", desc = "Move focus left" },
+  { on = "left", run = "move_left", desc = "Move focus left" },
+  { on = "j", run = "move_down", desc = "Move focus down" },
+  { on = "down", run = "move_down", desc = "Move focus down" },
+  { on = "k", run = "move_up", desc = "Move focus up" },
+  { on = "up", run = "move_up", desc = "Move focus up" },
+  { on = "l", run = "move_right", desc = "Move focus right" },
+  { on = "right", run = "move_right", desc = "Move focus right" },
+  { on = "pgup", run = "page_up", desc = "Move one page up" },
+  { on = "pgdn", run = "page_down", desc = "Move one page down" },
+  { on = "pagedown", run = "page_down", desc = "Move one page down" },
+  { on = "home", run = "home", desc = "Go to first image" },
+  { on = ["g", "g"], run = "home", desc = "Go to first image" },
+  { on = "end", run = "end", desc = "Go to last image" },
+  { on = "G", run = "end", desc = "Go to last image" },
+  { on = "space", run = "toggle_select", desc = "Toggle selection" },
+  { on = "esc", run = "clear_selection", desc = "Clear selection" },
+  { on = ["c", "p"], run = "copy_paths", desc = "Output selected paths" },
+  { on = ["s", "n"], run = "sort name asc", desc = "Sort by name ascending" },
+  { on = ["s", "N"], run = "sort name desc", desc = "Sort by name descending" },
+  { on = ["s", "m"], run = "sort modified asc", desc = "Sort by modified time ascending" },
+  { on = ["s", "M"], run = "sort modified desc", desc = "Sort by modified time descending" },
+  { on = ["s", "z"], run = "sort size asc", desc = "Sort by size ascending" },
+  { on = ["s", "S"], run = "sort size desc", desc = "Sort by size descending" },
+]
+
+[detail]
+keymap = [
+  { on = "q", run = "back", desc = "Return to browser" },
+  { on = "h", run = "move_left", desc = "Show image page" },
+  { on = "left", run = "move_left", desc = "Show image page" },
+  { on = "l", run = "move_right", desc = "Show metadata page" },
+  { on = "right", run = "move_right", desc = "Show metadata page" },
+  { on = "j", run = "move_down", desc = "Next image" },
+  { on = "down", run = "move_down", desc = "Next image" },
+  { on = "k", run = "move_up", desc = "Previous image" },
+  { on = "up", run = "move_up", desc = "Previous image" },
+  { on = ["g", "g"], run = "home", desc = "Go to first image" },
+  { on = "G", run = "end", desc = "Go to last image" },
+  { on = "e", run = "edit_metadata", desc = "Edit metadata in $EDITOR" },
+]
+
+[input]
+keymap = [
+  { on = "f1", run = "help", desc = "Show key bindings" },
+  { on = "esc", run = "cancel", desc = "Cancel input" },
+  { on = "enter", run = "submit", desc = "Submit input" },
+  { on = "backspace", run = "backspace", desc = "Delete before cursor" },
+  { on = "delete", run = "delete", desc = "Delete under cursor" },
+  { on = "left", run = "move_left", desc = "Move cursor left" },
+  { on = "right", run = "move_right", desc = "Move cursor right" },
+  { on = "home", run = "move_start", desc = "Move cursor to start" },
+  { on = "ctrl-a", run = "move_start", desc = "Move cursor to start" },
+  { on = "end", run = "move_end", desc = "Move cursor to end" },
+  { on = "ctrl-e", run = "move_end", desc = "Move cursor to end" },
+  { on = "ctrl-u", run = "kill_before_cursor", desc = "Delete before cursor" },
+  { on = "ctrl-k", run = "kill_after_cursor", desc = "Delete after cursor" },
+  { on = "tab", run = "completion_next", desc = "Select next completion" },
+  { on = "backtab", run = "completion_previous", desc = "Select previous completion" },
+  { on = "up", run = "history_previous", desc = "Previous command history" },
+  { on = "down", run = "history_next", desc = "Next command history" },
+  { on = "ctrl-g", run = "edit_in_editor", desc = "Edit input in $EDITOR" },
+]
+
+[global]
+keymap = [
+  { on = "f1", run = "help", desc = "Show key bindings" },
+  { on = "r", run = "rename", desc = "Rename image" },
+  { on = ":", run = "command", desc = "Enter command" },
+]
+

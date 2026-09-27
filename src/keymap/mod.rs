@@ -11,13 +11,23 @@
 //! `pgdn`, `ctrl-x`, `alt-x`) or in vim-style notation (`<CR>`, `<C-x>`,
 //! `<A-x>`, `<S-Tab>`). Named keys match in any case; single characters
 //! are case-sensitive.
+//!
+//! Keymap files use [`KeymapSection`]s of [`KeymapEntry`]s (`on`, `run`,
+//! `desc`); [`format_keymap_sections`] writes them back and
+//! [`default_input_keymap`] gives the usual prompt keys. The `serde`
+//! feature makes these types (de)serializable.
 
 mod bindings;
+mod config;
 mod dispatch;
 mod help;
 mod token;
 
 pub use bindings::{KeyBindingConfig, KeyBindings, KeyContext, KeyHint, MatchResult};
+pub use config::{
+  InputKeymapOptions, KeymapEntry, KeymapOn, KeymapSection, default_input_keymap,
+  format_keymap_sections, key, push_keymap_section, toml_basic_string,
+};
 pub use dispatch::KeyDispatcher;
 pub use help::{KeyHelpEntry, merge_help_entries};
 pub use token::key_event_to_token;
