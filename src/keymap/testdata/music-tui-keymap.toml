@@ -1,0 +1,156 @@
+[queue]
+keymap = [
+  { on = "esc", run = "back", desc = "Clear filter or return to first tab" },
+  { on = "f1", run = "help", desc = "Show queue key bindings" },
+  { on = "j", run = "queue_down", desc = "Move selection down" },
+  { on = "down", run = "queue_down", desc = "Move selection down" },
+  { on = "k", run = "queue_up", desc = "Move selection up" },
+  { on = "up", run = "queue_up", desc = "Move selection up" },
+  { on = "pgdn", run = "queue_page_down", desc = "Move selection one page down" },
+  { on = "pagedown", run = "queue_page_down", desc = "Move selection one page down" },
+  { on = "pgup", run = "queue_page_up", desc = "Move selection one page up" },
+  { on = "pageup", run = "queue_page_up", desc = "Move selection one page up" },
+  { on = ["g", "c"], run = "queue_goto_playing", desc = "Jump to the currently playing song" },
+  { on = ["g", "g"], run = "queue_top", desc = "Move selection to top" },
+  { on = "home", run = "queue_top", desc = "Move selection to top" },
+  { on = "G", run = "queue_end", desc = "Move selection to end" },
+  { on = "end", run = "queue_end", desc = "Move selection to end" },
+  { on = "enter", run = "queue_play", desc = "Play selected song" },
+  { on = "d", run = "queue_delete", desc = "Remove selected song from queue" },
+  { on = "D", run = "queue_clear", desc = "Clear the queue" },
+  { on = "?", run = "queue_shuffle", desc = "Shuffle the queue" },
+  { on = [",", "d"], run = "queue_dedup", desc = "Toggle hiding duplicate queue entries" },
+  { on = "i", run = "queue_detail", desc = "Open details of the selected song" },
+  { on = "e", run = "edit_metadata", desc = "Edit the selected song's metadata" },
+  { on = "/", run = "queue_filter", desc = "Filter the queue (esc clears)" },
+]
+
+[library]
+keymap = [
+  { on = "esc", run = "back", desc = "Clear filter or return to first tab" },
+  { on = "f1", run = "help", desc = "Show library key bindings" },
+  { on = "j", run = "library_down", desc = "Move selection down" },
+  { on = "down", run = "library_down", desc = "Move selection down" },
+  { on = "k", run = "library_up", desc = "Move selection up" },
+  { on = "up", run = "library_up", desc = "Move selection up" },
+  { on = "pgdn", run = "library_page_down", desc = "Move selection one page down" },
+  { on = "pagedown", run = "library_page_down", desc = "Move selection one page down" },
+  { on = "pgup", run = "library_page_up", desc = "Move selection one page up" },
+  { on = "pageup", run = "library_page_up", desc = "Move selection one page up" },
+  { on = ["g", "g"], run = "library_top", desc = "Move selection to top" },
+  { on = "home", run = "library_top", desc = "Move selection to top" },
+  { on = "G", run = "library_end", desc = "Move selection to end" },
+  { on = "end", run = "library_end", desc = "Move selection to end" },
+  { on = "enter", run = "library_play", desc = "Play selected track (replaces play position)" },
+  { on = "a", run = "library_append", desc = "Append selected track to the queue" },
+  { on = "i", run = "library_detail", desc = "Open details of the selected track" },
+  { on = "u", run = "library_rescan", desc = "Rescan the library database" },
+  { on = "/", run = "library_filter", desc = "Filter the library (esc clears)" },
+]
+
+[metadata]
+keymap = [
+  { on = "esc", run = "back", desc = "Return to queue view" },
+  { on = "f1", run = "help", desc = "Show metadata key bindings" },
+  { on = "e", run = "edit_metadata", desc = "Edit metadata in $EDITOR" },
+  { on = "j", run = "scroll_down", desc = "Scroll metadata down" },
+  { on = "down", run = "scroll_down", desc = "Scroll metadata down" },
+  { on = "k", run = "scroll_up", desc = "Scroll metadata up" },
+  { on = "up", run = "scroll_up", desc = "Scroll metadata up" },
+  { on = "pgdn", run = "page_down", desc = "Scroll metadata page down" },
+  { on = "pagedown", run = "page_down", desc = "Scroll metadata page down" },
+  { on = "pgup", run = "page_up", desc = "Scroll metadata page up" },
+  { on = "pageup", run = "page_up", desc = "Scroll metadata page up" },
+]
+
+[cover]
+keymap = [
+  { on = "esc", run = "back", desc = "Return to queue view" },
+  { on = "f1", run = "help", desc = "Show cover key bindings" },
+]
+
+[lyrics]
+keymap = [
+  { on = "esc", run = "back", desc = "Return to queue view" },
+  { on = "f1", run = "help", desc = "Show lyrics key bindings" },
+  { on = "j", run = "lyrics_down", desc = "Scroll lyrics down" },
+  { on = "down", run = "lyrics_down", desc = "Scroll lyrics down" },
+  { on = "k", run = "lyrics_up", desc = "Scroll lyrics up" },
+  { on = "up", run = "lyrics_up", desc = "Scroll lyrics up" },
+  { on = "pgdn", run = "lyrics_page_down", desc = "Scroll lyrics page down" },
+  { on = "pagedown", run = "lyrics_page_down", desc = "Scroll lyrics page down" },
+  { on = "pgup", run = "lyrics_page_up", desc = "Scroll lyrics page up" },
+  { on = "pageup", run = "lyrics_page_up", desc = "Scroll lyrics page up" },
+  { on = "F", run = "lyrics_follow", desc = "Toggle auto-follow playback" },
+  { on = "enter", run = "lyrics_jump", desc = "Seek to the selected lyric line" },
+]
+
+[visualizer]
+keymap = [
+  { on = "esc", run = "back", desc = "Return to queue view" },
+  { on = "f1", run = "help", desc = "Show visualizer key bindings" },
+]
+
+[input]
+keymap = [
+  { on = "esc", run = "cancel", desc = "Cancel input" },
+  { on = "f1", run = "help", desc = "Show input key bindings" },
+  { on = "enter", run = "submit", desc = "Submit input" },
+  { on = "backspace", run = "backspace", desc = "Delete before cursor" },
+  { on = "delete", run = "delete", desc = "Delete under cursor" },
+  { on = "left", run = "move_left", desc = "Move cursor left" },
+  { on = "right", run = "move_right", desc = "Move cursor right" },
+  { on = "home", run = "move_start", desc = "Move cursor to start" },
+  { on = "ctrl-a", run = "move_start", desc = "Move cursor to start" },
+  { on = "end", run = "move_end", desc = "Move cursor to end" },
+  { on = "ctrl-e", run = "move_end", desc = "Move cursor to end" },
+  { on = "ctrl-u", run = "kill_before_cursor", desc = "Delete before cursor" },
+  { on = "ctrl-k", run = "kill_after_cursor", desc = "Delete after cursor" },
+  { on = "tab", run = "completion_next", desc = "Select next completion" },
+  { on = "backtab", run = "completion_previous", desc = "Select previous completion" },
+  { on = "up", run = "history_previous", desc = "Previous command history" },
+  { on = "down", run = "history_next", desc = "Next command history" },
+]
+
+[help]
+keymap = [
+  { on = "pgdn", run = "page_down", desc = "Scroll help one page down" },
+  { on = "pagedown", run = "page_down", desc = "Scroll help one page down" },
+  { on = "pgup", run = "page_up", desc = "Scroll help one page up" },
+  { on = "pageup", run = "page_up", desc = "Scroll help one page up" },
+  { on = "j", run = "scroll_down", desc = "Scroll help down" },
+  { on = "down", run = "scroll_down", desc = "Scroll help down" },
+  { on = "k", run = "scroll_up", desc = "Scroll help up" },
+  { on = "up", run = "scroll_up", desc = "Scroll help up" },
+]
+
+[global]
+keymap = [
+  { on = ":", run = "command", desc = "Enter command" },
+  { on = "q", run = "quit", desc = "Quit music-tui" },
+  { on = "ctrl-c", run = "quit", desc = "Quit music-tui" },
+  { on = "a", run = "tab_previous", desc = "Switch to previous tab" },
+  { on = "f", run = "tab_next", desc = "Switch to next tab" },
+  { on = "h", run = "tab_previous", desc = "Switch to previous tab" },
+  { on = "l", run = "tab_next", desc = "Switch to next tab" },
+  { on = "left", run = "tab_previous", desc = "Switch to previous tab" },
+  { on = "right", run = "tab_next", desc = "Switch to next tab" },
+  { on = "tab", run = "tab_next", desc = "Switch to next tab" },
+  { on = "backtab", run = "tab_previous", desc = "Switch to previous tab" },
+  { on = "[", run = "previous", desc = "Previous song" },
+  { on = "]", run = "next", desc = "Next song" },
+  { on = "\\", run = "play_pause", desc = "Toggle play or pause" },
+  { on = "x", run = "stop", desc = "Stop playback" },
+  { on = "-", run = "seek_back", desc = "Seek 5 seconds back" },
+  { on = "=", run = "seek_forward", desc = "Seek 5 seconds forward" },
+  { on = "_", run = "seek_back_long", desc = "Seek 30 seconds back" },
+  { on = "+", run = "seek_forward_long", desc = "Seek 30 seconds forward" },
+  { on = "{", run = "volume_down", desc = "Decrease volume" },
+  { on = "}", run = "volume_up", desc = "Increase volume" },
+  { on = "m", run = "volume_mute", desc = "Toggle mute" },
+  { on = [",", "r"], run = "toggle_repeat", desc = "Toggle repeat" },
+  { on = [",", "t"], run = "toggle_random", desc = "Toggle random" },
+  { on = [",", "y"], run = "cycle_single", desc = "Cycle single mode" },
+  { on = [",", "c"], run = "toggle_consume", desc = "Toggle consume" },
+]
+

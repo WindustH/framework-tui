@@ -3,10 +3,22 @@ name = "framework-tui"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Reusable input, command, editor, dialog, and key binding helpers for TUI apps"
+description = "Reusable input, command, editor, dialog, key binding and terminal helpers for TUI apps"
 repository = "https://github.com/WindustH/framework-tui"
+
+[features]
+# Read and write keymap files: serde support for `KeymapSection` and friends.
+serde = ["dep:serde"]
 
 [dependencies]
 crossterm = "0.29.0"
 ratatui = "0.30.2"
+serde = { version = "1.0.228", features = ["derive"], optional = true }
 unicode-width = "0.2.2"
+
+# Termination signals. Already built on Unix as a crossterm dependency.
+[target.'cfg(unix)'.dependencies]
+signal-hook = "0.3.18"
+
+[dev-dependencies]
+toml = "1.1.2"

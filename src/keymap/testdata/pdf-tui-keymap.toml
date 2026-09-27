@@ -1,0 +1,130 @@
+[viewer]
+keymap = [
+  { on = "q", run = "quit", desc = "Quit pdf-tui" },
+  { on = "ctrl-c", run = "quit", desc = "Quit pdf-tui" },
+  { on = "esc", run = "selection_cancel", desc = "Cancel selection anchor" },
+  { on = "f1", run = "help", desc = "Show viewer key bindings" },
+  { on = "j", run = "scroll_down", desc = "Scroll down" },
+  { on = "down", run = "scroll_down", desc = "Scroll down" },
+  { on = "k", run = "scroll_up", desc = "Scroll up" },
+  { on = "up", run = "scroll_up", desc = "Scroll up" },
+  { on = "pgdn", run = "page_down", desc = "Move one page down" },
+  { on = "pagedown", run = "page_down", desc = "Move one page down" },
+  { on = "pgup", run = "page_up", desc = "Move one page up" },
+  { on = "home", run = "home", desc = "Go to first page" },
+  { on = ["g", "g"], run = "home", desc = "Go to first page" },
+  { on = "end", run = "end", desc = "Go to last page" },
+  { on = "G", run = "end", desc = "Go to last page" },
+  { on = "h", run = "page_up", desc = "Move one page up" },
+  { on = "left", run = "page_up", desc = "Move one page up" },
+  { on = "l", run = "page_down", desc = "Move one page down" },
+  { on = "right", run = "page_down", desc = "Move one page down" },
+  { on = "r", run = "refresh", desc = "Refresh current PDF" },
+  { on = "m", run = "metadata", desc = "Show PDF metadata" },
+  { on = "b", run = "bookmarks", desc = "Show PDF bookmarks" },
+  { on = "s", run = "search", desc = "Search PDF text" },
+  { on = "v", run = "selection", desc = "Show PDF selections" },
+  { on = "mouse_left", run = "selection_mark", desc = "Mark PDF selection corner" },
+  { on = ["L", "s"], run = "layout scroll 1 3", desc = "Use one-column scroll layout" },
+  { on = ["L", "g"], run = "layout grid 2 2", desc = "Use 2x2 grid layout" },
+]
+
+[metadata]
+keymap = [
+  { on = "q", run = "back", desc = "Return to viewer" },
+  { on = "esc", run = "back", desc = "Return to viewer" },
+  { on = "ctrl-c", run = "quit", desc = "Quit pdf-tui" },
+  { on = "f1", run = "help", desc = "Show metadata key bindings" },
+  { on = "e", run = "edit_metadata", desc = "Edit PDF metadata" },
+  { on = "j", run = "metadata_scroll_down", desc = "Scroll metadata down" },
+  { on = "down", run = "metadata_scroll_down", desc = "Scroll metadata down" },
+  { on = "k", run = "metadata_scroll_up", desc = "Scroll metadata up" },
+  { on = "up", run = "metadata_scroll_up", desc = "Scroll metadata up" },
+  { on = "pgdn", run = "metadata_page_down", desc = "Scroll metadata page down" },
+  { on = "pagedown", run = "metadata_page_down", desc = "Scroll metadata page down" },
+  { on = "pgup", run = "metadata_page_up", desc = "Scroll metadata page up" },
+]
+
+[bookmarks]
+keymap = [
+  { on = "q", run = "back", desc = "Return to viewer" },
+  { on = "esc", run = "back", desc = "Return to viewer" },
+  { on = "ctrl-c", run = "quit", desc = "Quit pdf-tui" },
+  { on = "f1", run = "help", desc = "Show bookmark key bindings" },
+  { on = "e", run = "edit_bookmarks", desc = "Edit PDF bookmarks" },
+  { on = "j", run = "bookmarks_next", desc = "Move to next bookmark" },
+  { on = "down", run = "bookmarks_next", desc = "Move to next bookmark" },
+  { on = "k", run = "bookmarks_previous", desc = "Move to previous bookmark" },
+  { on = "up", run = "bookmarks_previous", desc = "Move to previous bookmark" },
+  { on = "pgdn", run = "bookmarks_page_down", desc = "Move down one page of bookmarks" },
+  { on = "pagedown", run = "bookmarks_page_down", desc = "Move down one page of bookmarks" },
+  { on = "pgup", run = "bookmarks_page_up", desc = "Move up one page of bookmarks" },
+  { on = "space", run = "bookmarks_toggle", desc = "Expand or collapse bookmark" },
+  { on = "z", run = "bookmarks_toggle_all", desc = "Expand or collapse all bookmarks" },
+  { on = "enter", run = "bookmarks_open", desc = "Jump to bookmark" },
+  { on = "h", run = "bookmarks_panel_narrower", desc = "Narrow bookmark panel" },
+  { on = "left", run = "bookmarks_panel_narrower", desc = "Narrow bookmark panel" },
+  { on = "l", run = "bookmarks_panel_wider", desc = "Widen bookmark panel" },
+  { on = "right", run = "bookmarks_panel_wider", desc = "Widen bookmark panel" },
+]
+
+[search]
+keymap = [
+  { on = "esc", run = "back", desc = "Return to viewer" },
+  { on = "ctrl-c", run = "quit", desc = "Quit pdf-tui" },
+  { on = "f1", run = "help", desc = "Show search key bindings" },
+  { on = "tab", run = "search_next", desc = "Move to next search result" },
+  { on = "down", run = "search_next", desc = "Move to next search result" },
+  { on = "backtab", run = "search_previous", desc = "Move to previous search result" },
+  { on = "up", run = "search_previous", desc = "Move to previous search result" },
+  { on = "pgdn", run = "search_page_down", desc = "Move down one page of search results" },
+  { on = "pagedown", run = "search_page_down", desc = "Move down one page of search results" },
+  { on = "pgup", run = "search_page_up", desc = "Move up one page of search results" },
+  { on = "enter", run = "search_open", desc = "Jump to search result" },
+]
+
+[selection]
+keymap = [
+  { on = "q", run = "back", desc = "Return to viewer" },
+  { on = "esc", run = "selection_cancel", desc = "Cancel selection anchor or return to viewer" },
+  { on = "ctrl-c", run = "quit", desc = "Quit pdf-tui" },
+  { on = "f1", run = "help", desc = "Show selection key bindings" },
+  { on = "mouse_left", run = "selection_mark", desc = "Mark PDF selection corner" },
+  { on = "v", run = "selection_reselect", desc = "Select inside current selection" },
+  { on = "j", run = "selection_next", desc = "Move to next selection" },
+  { on = "down", run = "selection_next", desc = "Move to next selection" },
+  { on = "pgdn", run = "selection_next", desc = "Move to next selection" },
+  { on = "pagedown", run = "selection_next", desc = "Move to next selection" },
+  { on = "k", run = "selection_previous", desc = "Move to previous selection" },
+  { on = "up", run = "selection_previous", desc = "Move to previous selection" },
+  { on = "pgup", run = "selection_previous", desc = "Move to previous selection" },
+  { on = "y", run = "selection_copy_text", desc = "Copy selected text" },
+  { on = "Y", run = "selection_copy_image", desc = "Copy selected image" },
+]
+
+[input]
+keymap = [
+  { on = "esc", run = "cancel", desc = "Cancel input" },
+  { on = "f1", run = "help", desc = "Show input key bindings" },
+  { on = "enter", run = "submit", desc = "Submit input" },
+  { on = "backspace", run = "backspace", desc = "Delete before cursor" },
+  { on = "delete", run = "delete", desc = "Delete under cursor" },
+  { on = "left", run = "move_left", desc = "Move cursor left" },
+  { on = "right", run = "move_right", desc = "Move cursor right" },
+  { on = "home", run = "move_start", desc = "Move cursor to start" },
+  { on = "ctrl-a", run = "move_start", desc = "Move cursor to start" },
+  { on = "end", run = "move_end", desc = "Move cursor to end" },
+  { on = "ctrl-e", run = "move_end", desc = "Move cursor to end" },
+  { on = "ctrl-u", run = "kill_before_cursor", desc = "Delete before cursor" },
+  { on = "ctrl-k", run = "kill_after_cursor", desc = "Delete after cursor" },
+  { on = "tab", run = "completion_next", desc = "Select next completion" },
+  { on = "backtab", run = "completion_previous", desc = "Select previous completion" },
+  { on = "up", run = "history_previous", desc = "Previous command history" },
+  { on = "down", run = "history_next", desc = "Next command history" },
+]
+
+[global]
+keymap = [
+  { on = ":", run = "command", desc = "Enter command" },
+]
+
