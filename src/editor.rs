@@ -14,7 +14,11 @@ use std::{
   time::SystemTime,
 };
 
-/// Editor used when neither `EDITOR` nor `VISUAL` is set.
+/// Variables naming the user's editor, in order: `VISUAL` (the full-screen
+/// editor) wins over `EDITOR`, as in git and most Unix tools.
+const EDITOR_VARS: [&str; 2] = ["VISUAL", "EDITOR"];
+
+/// Editor used when neither `VISUAL` nor `EDITOR` is set.
 #[cfg(not(windows))]
 const FALLBACK_EDITOR: &str = "vi";
 #[cfg(windows)]
@@ -22,8 +26,8 @@ const FALLBACK_EDITOR: &str = "notepad";
 
 #[derive(Debug, Clone)]
 pub struct EditorOptions {
-  /// Editor command; `None` (or a blank string) uses `$EDITOR`, then
-  /// `$VISUAL`, then `vi` (`notepad` on Windows).
+  /// Editor command; `None` (or a blank string) uses `$VISUAL`, then
+  /// `$EDITOR`, then `vi` (`notepad` on Windows).
   pub editor: Option<String>,
   /// Start of the temporary file name.
   pub file_prefix: String,
@@ -121,9 +125,14 @@ fn launch_editor(editor: &str, path: &Path) -> io::Result<ExitStatus> {
 }
 
 fn default_editor() -> String {
-  ["EDITOR", "VISUAL"]
+  editor_from_vars(|name| env::var(name).ok())
+}
+
+/// The first non-blank editor variable, or the fallback editor.
+fn editor_from_vars(lookup: impl Fn(&str) -> Option<String>) -> String {
+  EDITOR_VARS
     .into_iter()
-    .filter_map(|name| env::var(name).ok())
+    .filter_map(lookup)
     .find(|editor| !editor.trim().is_empty())
     .unwrap_or_else(|| FALLBACK_EDITOR.to_string())
 }
@@ -195,6 +204,22 @@ mod tests {
     let result = edit_text_in_editor_with_options("initial", &scratch.0, &options("false"));
     assert!(result.unwrap_err().starts_with("editor exited with"));
     assert_eq!(scratch.editor_files(), 0);
+  }
+
+  #[test]
+  fn visual_wins_over_editor_and_blanks_are_skipped() {
+    let vars = |visual: Option<&str>, editor: Option<&str>| {
+      let (visual, editor) = (visual.map(str::to_string), editor.map(str::to_string));
+      editor_from_vars(move |name| match name {
+        "VISUAL" => visual.clone(),
+        "EDITOR" => editor.clone(),
+        _ => None,
+      })
+    };
+    assert_eq!(vars(Some("nvim"), Some("nano")), "nvim");
+    assert_eq!(vars(Some("  "), Some("nano")), "nano");
+    assert_eq!(vars(None, Some("nano")), "nano");
+    assert_eq!(vars(None, None), FALLBACK_EDITOR);
   }
 
   #[test]
