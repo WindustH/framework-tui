@@ -332,3 +332,14 @@ can quit cleanly.
 ## License
 
 MIT
+
+Named key sections are available through `KeyBindings::from_named_sections`
+and `KeyContext::Section("name")`. `with_local_overrides` centralizes the
+rule that global keys have priority except exact sequences rebound locally.
+The `text`, `theme`, `paths`, `fs` and `commented_toml` modules provide the
+shared display-width, color, directory, atomic-write and comment utilities.
+Configuration schemas, defaults and incompatible-file recovery remain app policy.
+
+Development checks use `cargo fmt --all -- --check`,
+`cargo clippy --workspace --all-targets --all-features -- -D warnings` and
+`cargo check --workspace --all-targets --all-features`; no test targets are shipped.

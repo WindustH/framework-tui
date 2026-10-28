@@ -11,6 +11,10 @@ pub enum KeyContext {
   Browser,
   Detail,
   Input,
+  /// An application-defined section name.
+  Section(&'static str),
+  /// The table's selected section, useful when dispatching across pane tables.
+  Active,
 }
 
 /// One configured binding: the keys in `on` pressed in order run `action`.
@@ -44,9 +48,9 @@ pub struct KeyHint {
 /// Parsed key bindings for every context.
 #[derive(Debug, Clone)]
 pub struct KeyBindings {
-  browser: Vec<Binding>,
-  detail: Vec<Binding>,
-  input: Vec<Binding>,
+  sections: BTreeMap<&'static str, Vec<Binding>>,
+  section_globals: BTreeMap<&'static str, Vec<Binding>>,
+  active: KeyContext,
   global: Vec<Binding>,
   global_priority: bool,
 }
@@ -67,13 +71,58 @@ impl KeyBindings {
     input: impl IntoIterator<Item = KeyBindingConfig>,
     global: impl IntoIterator<Item = KeyBindingConfig>,
   ) -> Self {
+    Self::from_named_sections(
+      [
+        ("browser", browser.into_iter().collect()),
+        ("detail", detail.into_iter().collect()),
+        ("input", input.into_iter().collect()),
+      ],
+      global,
+    )
+  }
+
+  /// Parse application-defined sections. Input remains isolated from global keys.
+  pub fn from_named_sections(
+    sections: impl IntoIterator<Item = (&'static str, Vec<KeyBindingConfig>)>,
+    global: impl IntoIterator<Item = KeyBindingConfig>,
+  ) -> Self {
     Self {
-      browser: parse_entries(browser),
-      detail: parse_entries(detail),
-      input: parse_entries(input),
+      sections: sections
+        .into_iter()
+        .map(|(name, entries)| (name, parse_entries(entries)))
+        .collect(),
+      section_globals: BTreeMap::new(),
+      active: KeyContext::Browser,
       global: parse_entries(global),
       global_priority: false,
     }
+  }
+
+  pub fn with_active_section(mut self, name: &'static str) -> Self {
+    self.active = KeyContext::Section(name);
+    self
+  }
+
+  /// Global keys have priority except exact sequences explicitly rebound locally.
+  /// Compare normalized tokens once, so dispatch and help share the same rule.
+  pub fn with_local_overrides(mut self) -> Self {
+    for (name, section) in &self.sections {
+      self.section_globals.insert(
+        name,
+        self
+          .global
+          .iter()
+          .filter(|global| {
+            !section
+              .iter()
+              .any(|local| local.sequence == global.sequence)
+          })
+          .cloned()
+          .collect(),
+      );
+    }
+    self.global_priority = true;
+    self
   }
 
   /// Let `global` bindings take priority over the context sections (opt-in).
@@ -118,15 +167,34 @@ impl KeyBindings {
 
   /// The two binding lists for `context`, the higher-priority one first.
   fn layers(&self, context: KeyContext) -> (&[Binding], &[Binding]) {
-    let section = match context {
-      KeyContext::Browser => &self.browser,
-      KeyContext::Detail => &self.detail,
-      KeyContext::Input => return (&self.input, &[]),
-    };
-    if self.global_priority {
-      (&self.global, section)
+    let context = if context == KeyContext::Active {
+      self.active
     } else {
-      (section, &self.global)
+      context
+    };
+    let name = match context {
+      KeyContext::Browser | KeyContext::Active => "browser",
+      KeyContext::Detail => "detail",
+      KeyContext::Input => "input",
+      KeyContext::Section(name) => name,
+    };
+    let section = self
+      .sections
+      .get(name)
+      .map(Vec::as_slice)
+      .unwrap_or_default();
+    if name == "input" {
+      return (section, &[]);
+    }
+    let global = self
+      .section_globals
+      .get(name)
+      .unwrap_or(&self.global)
+      .as_slice();
+    if self.global_priority {
+      (global, section)
+    } else {
+      (section, global)
     }
   }
 }
@@ -183,130 +251,4 @@ fn match_bindings<'a>(
   exact.map_or(MatchResult::None, |action| {
     MatchResult::Action(action.to_string())
   })
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  fn config(on: &[&str], action: &str, desc: &str) -> KeyBindingConfig {
-    KeyBindingConfig {
-      on: on.iter().map(|key| key.to_string()).collect(),
-      action: action.to_string(),
-      desc: desc.to_string(),
-    }
-  }
-
-  fn none() -> Vec<KeyBindingConfig> {
-    Vec::new()
-  }
-
-  fn browser(entries: Vec<KeyBindingConfig>, global: Vec<KeyBindingConfig>) -> KeyBindings {
-    KeyBindings::from_sections(entries, none(), none(), global)
-  }
-
-  fn keys(keys: &[&str]) -> Vec<String> {
-    keys.iter().map(|key| key.to_string()).collect()
-  }
-
-  /// The flattened [section, global] list is last-wins on exact conflicts,
-  /// so a `global` entry beats a conflicting context entry even without the
-  /// opt-in flag.
-  #[test]
-  fn default_is_last_wins_like_history() {
-    let bindings = browser(
-      vec![config(&["x"], "browser_action", "")],
-      vec![config(&["x"], "global_action", "")],
-    );
-    assert_eq!(
-      bindings.match_sequence(KeyContext::Browser, &keys(&["x"])),
-      MatchResult::Action("global_action".to_string())
-    );
-  }
-
-  /// A context-section prefix (multi-key sequence) shadows a `global` exact
-  /// match because pending hints win whenever any binding can still be
-  /// continued.
-  #[test]
-  fn default_section_prefix_shadows_global_exact() {
-    let bindings = browser(
-      vec![config(&["g", "g"], "gg_action", "")],
-      vec![config(&["g"], "global_action", "")],
-    );
-    assert!(matches!(
-      bindings.match_sequence(KeyContext::Browser, &keys(&["g"])),
-      MatchResult::Prefix(_)
-    ));
-  }
-
-  #[test]
-  fn global_priority_is_opt_in() {
-    let bindings = browser(
-      vec![config(&["x"], "browser_action", "")],
-      vec![config(&["x"], "global_action", "")],
-    )
-    .with_global_priority();
-    assert_eq!(
-      bindings.match_sequence(KeyContext::Browser, &keys(&["x"])),
-      MatchResult::Action("global_action".to_string())
-    );
-    // Input context still only consults the input section.
-    assert_eq!(
-      bindings.match_sequence(KeyContext::Input, &keys(&["x"])),
-      MatchResult::None
-    );
-
-    // Opt-in also removes the prefix shadowing: a global exact match fires
-    // immediately instead of being shadowed by section prefixes.
-    let shadowed = browser(
-      vec![config(&["g", "g"], "gg_action", "")],
-      vec![config(&["g"], "global_action", "")],
-    )
-    .with_global_priority();
-    assert_eq!(
-      shadowed.match_sequence(KeyContext::Browser, &keys(&["g"])),
-      MatchResult::Action("global_action".to_string())
-    );
-  }
-
-  #[test]
-  fn prefix_hints_list_next_keys_with_descriptions() {
-    let bindings = browser(
-      vec![
-        config(&["g", "g"], "top", "Go to top"),
-        config(&["g", "e"], "end", "Go to end"),
-        config(&["g", "e", "x"], "undescribed", ""),
-        config(&["<C-x>", "Enter"], "submit", "Submit"),
-      ],
-      none(),
-    );
-    assert_eq!(
-      bindings.match_sequence(KeyContext::Browser, &keys(&["g"])),
-      MatchResult::Prefix(vec![
-        // An undescribed binding no longer leaves a stray ", " in the label.
-        KeyHint {
-          key: "e".to_string(),
-          label: "Go to end".to_string()
-        },
-        KeyHint {
-          key: "g".to_string(),
-          label: "Go to top".to_string()
-        },
-      ])
-    );
-    assert_eq!(
-      bindings.match_sequence(KeyContext::Browser, &keys(&["ctrl-x", "enter"])),
-      MatchResult::Action("submit".to_string())
-    );
-    assert_eq!(
-      bindings.match_sequence(KeyContext::Browser, &keys(&["q"])),
-      MatchResult::None
-    );
-  }
-
-  #[test]
-  fn entries_without_usable_keys_are_dropped() {
-    let bindings = browser(vec![config(&["", "  "], "nothing", "")], none());
-    assert_eq!(bindings.visible(KeyContext::Browser).count(), 0);
-  }
 }

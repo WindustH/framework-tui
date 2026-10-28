@@ -16,11 +16,17 @@
 //!   dialogs and the key-help dialog with app-supplied colors.
 
 pub mod command;
+pub mod commented_toml;
+#[cfg(feature = "serde")]
+pub mod config;
 pub mod editor;
+pub mod fs;
 pub mod input;
 pub mod keymap;
+pub mod paths;
 pub mod terminal;
-mod text;
+pub mod text;
+pub mod theme;
 pub mod widgets;
 
 pub use command::{

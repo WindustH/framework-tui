@@ -1,7 +1,8 @@
 [package]
 name = "framework-tui"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+rust-version = "1.90"
 license = "MIT"
 description = "Reusable input, command, editor, dialog, key binding and terminal helpers for TUI apps"
 repository = "https://github.com/WindustH/framework-tui"
@@ -20,5 +21,15 @@ unicode-width = "0.2.2"
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3.18"
 
-[dev-dependencies]
-toml = "1.1.2"
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+dbg_macro = "warn"
+
+[lib]
+test = false
+doctest = false

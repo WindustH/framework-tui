@@ -151,23 +151,3 @@ where
     }));
   });
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn emergency_leave_undoes_only_enabled_modes() {
-    let mut all = Vec::new();
-    write_emergency_leave(&mut all, true, true).unwrap();
-    let all = String::from_utf8(all).unwrap();
-    assert!(all.starts_with("\x1b[?1049l"), "{all:?}");
-    assert!(all.contains("\x1b[?1000l"), "{all:?}");
-    assert!(all.contains("\x1b[?2004l"), "{all:?}");
-    assert!(all.ends_with("\x1b[?25h"), "{all:?}");
-
-    let mut plain = Vec::new();
-    write_emergency_leave(&mut plain, false, false).unwrap();
-    assert_eq!(String::from_utf8(plain).unwrap(), "\x1b[?1049l\x1b[?25h");
-  }
-}

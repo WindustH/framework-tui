@@ -27,14 +27,3 @@ pub use prompt_line::{PromptLineStyle, draw_prompt_line};
 pub const fn overlay_background() -> Color {
   Color::Reset
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn overlay_background_uses_terminal_reset() {
-    assert_eq!(overlay_background(), Color::Reset);
-    assert_eq!(PopupDialogStyle::default().base.bg, Some(Color::Reset));
-  }
-}

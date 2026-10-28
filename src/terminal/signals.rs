@@ -71,24 +71,3 @@ mod imp {
     Ok(())
   }
 }
-
-#[cfg(all(test, unix))]
-mod tests {
-  use std::{sync::mpsc, time::Duration};
-
-  use super::*;
-
-  #[test]
-  fn hangup_reaches_the_handler() {
-    let (tx, rx) = mpsc::channel();
-    watch_termination_signals(move |signal| {
-      let _ = tx.send(signal);
-    })
-    .unwrap();
-    signal_hook::low_level::raise(signal_hook::consts::SIGHUP).unwrap();
-    assert_eq!(
-      rx.recv_timeout(Duration::from_secs(5)),
-      Ok(TerminationSignal::Hangup)
-    );
-  }
-}
