@@ -14,6 +14,10 @@ and dialogs, while each app keeps its own colors.
 
 ## Features
 
+- **Composable panel geometry.** `layout::Composition` splits a rectangle left/right
+  or top/bottom with a size ratio, a cell gap, and a primary panel. Layout references
+  stay application-defined; apps own rendering and progress synchronization.
+
 - **Command line and text prompts.** A `:` command line and labelled prompts
   (rename, search, ...) with the familiar editing keys, paste, and history:
   up and down walk through earlier commands and bring back what you were

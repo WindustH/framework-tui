@@ -23,6 +23,7 @@ pub mod editor;
 pub mod fs;
 pub mod input;
 pub mod keymap;
+pub mod layout;
 pub mod paths;
 pub mod terminal;
 pub mod text;
