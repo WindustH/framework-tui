@@ -40,16 +40,16 @@
 //!
 //! [`restore`]: TerminalSession::restore
 
+mod backend;
 mod handoff;
 mod reader;
 mod session;
 mod signals;
 mod state;
 
+pub use backend::SessionBackend;
 pub use handoff::{HandOff, edit_text_outside_tui, run_outside_tui};
 pub use reader::{InputEvent, InputReader, discard_pending_events};
-pub use session::{
-  SessionBackend, SuspendTerminal, TerminalOptions, TerminalOutput, TerminalSession,
-};
+pub use session::{SuspendTerminal, TerminalOptions, TerminalOutput, TerminalSession};
 pub use signals::{TerminationSignal, watch_termination_signals};
 pub use state::{PanicOrigin, emergency_restore, install_panic_hook};

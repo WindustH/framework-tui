@@ -13,9 +13,9 @@ use crossterm::{
     Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
   },
 };
-use ratatui::{CompletedFrame, Frame, Terminal, backend::CrosstermBackend};
+use ratatui::{CompletedFrame, Frame, Terminal};
 
-use super::state;
+use super::{backend::SessionBackend, state};
 
 /// The stream the UI is drawn on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,9 +87,6 @@ impl Default for TerminalOptions {
   }
 }
 
-/// The ratatui backend of a [`TerminalSession`].
-pub type SessionBackend = CrosstermBackend<BufWriter<TerminalOutput>>;
-
 /// Something that can hand the terminal to another program and take it
 /// back: a [`TerminalSession`], or an app type wrapping one that has extra
 /// state to tear down and rebuild (such as terminal images).
@@ -135,7 +132,7 @@ impl TerminalSession {
       let mut writer = BufWriter::with_capacity(options.buffer_capacity, options.output);
       queue_enter(&mut writer, &options)?;
       writer.flush()?;
-      Terminal::new(CrosstermBackend::new(writer))
+      Terminal::new(SessionBackend::new(writer))
     })();
     match setup {
       Ok(terminal) => Ok(Self {
