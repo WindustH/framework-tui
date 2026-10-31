@@ -1,4 +1,4 @@
-//! Two-panel composition geometry. Applications resolve layout references and
+//! Two-panel composition geometry. Applications supply child panel settings and
 //! supply document progress; this module does not choose rendering strategies.
 use ratatui::layout::Rect;
 
@@ -49,34 +49,32 @@ impl LayoutReference {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(default, deny_unknown_fields))]
-/// Geometry and ownership only; applications resolve and draw both layouts.
-pub struct Composition {
+/// Split geometry and app-owned panel descriptions; applications resolve and draw
+/// both layouts. The default panel type retains the preset-reference API.
+pub struct Composition<P = LayoutReference> {
   pub direction: SplitDirection,
   pub ratio: [u16; 2],
   pub gap: u16,
   pub primary: PrimaryPanel,
-  pub first: LayoutReference,
-  pub second: LayoutReference,
+  pub first: P,
+  pub second: P,
 }
-impl Default for Composition {
+impl<P: Default> Default for Composition<P> {
   fn default() -> Self {
     Self {
       direction: SplitDirection::Horizontal,
       ratio: [1, 3],
       gap: 1,
       primary: PrimaryPanel::Second,
-      first: LayoutReference::default(),
-      second: LayoutReference::default(),
+      first: P::default(),
+      second: P::default(),
     }
   }
 }
-impl Composition {
+impl<P> Composition<P> {
   pub fn validate(&self) -> Result<(), String> {
     if self.ratio.contains(&0) {
       return Err("panel ratios must be greater than zero".into());
-    }
-    if self.first.layout.is_empty() || self.second.layout.is_empty() {
-      return Err("both composite panels must reference a layout".into());
     }
     Ok(())
   }
@@ -116,7 +114,7 @@ impl Composition {
 
 #[derive(Debug, Clone, PartialEq)]
 /// A validated split paired with the application's resolved leaf layouts.
-pub struct ResolvedComposition<T> {
-  pub split: Composition,
+pub struct ResolvedComposition<T, P = LayoutReference> {
+  pub split: Composition<P>,
   pub panels: [T; 2],
 }
